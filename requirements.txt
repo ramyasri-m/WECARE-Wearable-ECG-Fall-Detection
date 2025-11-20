@@ -1,0 +1,12 @@
+numpy
+scipy
+pandas
+matplotlib
+wfdb
+scikit-learn
+tensorflow>=2.10
+tflite-runtime
+keras-tuner
+pyyaml
+pywt
+joblib
