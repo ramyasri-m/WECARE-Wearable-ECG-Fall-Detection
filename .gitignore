@@ -6,3 +6,5 @@ experiments/
 *.h5
 *.npz
 .env
+data/MITBIH/
+
