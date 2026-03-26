@@ -1,0 +1,99 @@
+# ── Model Weights (too large for GitHub) ─────────────────────────────────
+*.pth
+*.pt
+*.bin
+*.ckpt
+*.safetensors
+
+# ── Scalers and Saved Objects ─────────────────────────────────────────────
+*.gz
+*.pkl
+*.pickle
+*.joblib
+
+# ── Dataset Files (download separately) ──────────────────────────────────
+*.csv
+*.dat
+*.hea
+*.atr
+*.xws
+data/
+datasets/
+raw_data/
+
+# ── API Keys and Secrets ──────────────────────────────────────────────────
+.env
+.env.local
+secrets.py
+config_local.py
+*_key.txt
+api_keys/
+
+# ── Jupyter Notebook Outputs ──────────────────────────────────────────────
+# Uncomment below to strip outputs before committing
+# Use: jupyter nbconvert --clear-output --inplace *.ipynb
+# *.ipynb   # don't ignore — keep notebooks with outputs for reproducibility
+
+# ── Python Cache ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ── Virtual Environments ──────────────────────────────────────────────────
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ── IDE ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Results and Outputs (large files) ────────────────────────────────────
+*.json
+results/
+outputs/
+logs/
+# Exception: keep small example result files
+!docs/example_results.json
+
+# ── Google Drive / Colab ──────────────────────────────────────────────────
+drive/
+content/
+
+# ── Compiled LaTeX ────────────────────────────────────────────────────────
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+# Keep the PDF and tex source
+!*.pdf
+!*.tex
