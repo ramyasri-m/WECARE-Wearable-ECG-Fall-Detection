@@ -1,4 +1,4 @@
-# 🫀 WECARE — Wearable Emergency Cardiac and Fall Response System
+# WECARE — Wearable Emergency Cardiac and Fall Response System
 
 <div align="center">
 
@@ -12,19 +12,19 @@
 then orchestrates a coordinated multi-actor emergency response using BLE proximity
 detection and LLM-generated first-aid instructions.**
 
-[Overview](#-overview) • [Architecture](#-architecture) • [Results](#-results) • [Setup](#-setup) • [Demo](#-demo) • [Roadmap](#-roadmap)
+[Overview](#overview) • [Architecture](#architecture) • [Results](#results) • [Setup](#setup) • [Demo](#demo) • [Roadmap](#roadmap)
 
 </div>
 
 ---
 
-## 🎯 Overview
+## Overview
 
-WECARE addresses a critical gap in wearable health technology: **detection exists, but coordinated response does not.**
+WECARE addresses a critical gap in wearable health technology: detection exists, but coordinated response does not.
 
 Commercial wearables (Apple Watch, Fitbit) detect falls or arrhythmias and call 911 — but no system currently:
 - Discovers nearby bystanders and delivers contextual first-aid instructions
-- Fuses simultaneous fall + cardiac signals into a unified severity decision
+- Fuses simultaneous fall and cardiac signals into a unified severity decision
 - Routes different information to different actors (patient, bystander, paramedic)
 - Operates entirely on-device without cloud dependency
 
@@ -32,12 +32,12 @@ WECARE is built in two phases:
 
 | Phase | Scope | Deliverable |
 |-------|-------|-------------|
-| **Phase I** | On-device 1D CNN detection | Fall: F1=0.81 · Arrhythmia: F1=0.99 |
-| **Phase II** | Orchestration layer | FSM · BLE proximity · LLM guidance · Multi-actor coordination |
+| Phase I | On-device 1D CNN detection | Fall: F1=0.81 · Arrhythmia: F1=0.99 |
+| Phase II | Orchestration layer | FSM · BLE proximity · LLM guidance · Multi-actor coordination |
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -53,71 +53,75 @@ WECARE is built in two phases:
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                  SEVERITY CLASSIFIER                         │
-│  Fall + Arrhythmia → HIGH  ← dual-signal fast-path           │
+│  Fall + Arrhythmia → HIGH  (dual-signal fast-path)           │
 │  Arrhythmia alone  → HIGH                                    │
-│  Fall (≥0.85)      → MEDIUM  ·  Fall (0.65–0.85) → LOW      │
+│  Fall (>=0.85)     → MEDIUM  ·  Fall (0.65-0.85) → LOW      │
 └──────────────────────────┬───────────────────────────────────┘
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │           ORCHESTRATION ENGINE  (5-State FSM)                │
 │   IDLE → PENDING → ACTIVE → ESCALATING → RESOLVED           │
-│                 ↑ Dual HIGH skips PENDING (fast-path)        │
+│                 Dual HIGH skips PENDING (fast-path)          │
 └───────────────┬──────────────────────┬───────────────────────┘
                 ▼                      ▼
     ┌───────────────────┐   ┌──────────────────────────────┐
     │   BLE PROXIMITY   │   │    LLM INSTRUCTION GEN       │
-    │   RSSI ≥ −70 dBm  │   │  llama-3.3-70b · T=0.1      │
+    │   RSSI >= -70 dBm │   │  llama-3.3-70b · T=0.1      │
     │   (Apple EN spec) │   │  AHA-aligned · 5-step output │
     └─────────┬─────────┘   └──────────────┬───────────────┘
               └──────────────┬─────────────┘
                              ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                     RESPONSE LAYER                           │
-│  👤 Patient    → audio/haptic alert on wearable              │
-│  🧑 Bystander  → BLE push + LLM step-by-step instructions   │
-│  🚑 Responder  → event summary on escalation                 │
+│  Patient    → audio/haptic alert on wearable                 │
+│  Bystander  → BLE push + LLM step-by-step instructions      │
+│  Responder  → event summary on escalation                    │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ✨ Key Innovations
+## Key Innovations
 
-### 1️⃣ Dual-Signal Fast-Path
-When fall AND arrhythmia are detected simultaneously, the system **bypasses the 5-second confirmation window** and jumps directly to `ALERT_ACTIVE`. Simultaneous fall + cardiac event indicates syncope or sudden cardiac arrest — where any delay is life-threatening.
+**Dual-Signal Fast-Path**
+
+When fall AND arrhythmia are detected simultaneously, the system bypasses the 5-second confirmation window and jumps directly to `ALERT_ACTIVE`. Simultaneous fall and cardiac event indicates syncope or sudden cardiac arrest — where any confirmation delay is dangerous.
 
 ```
 Standard path:  IDLE → PENDING (5s wait) → ACTIVE
-Fast-path:      IDLE ──────────────────→ ACTIVE  ← dual HIGH only
+Fast-path:      IDLE ──────────────────→ ACTIVE  (dual HIGH only)
 ```
 
-### 2️⃣ BLE Proximity Discovery (No GPS)
-Inspired by Apple's COVID-19 Exposure Notification framework. Uses RSSI threshold **−70 dBm** (~10m) for bystander discovery — no GPS, no internet required.
+**BLE Proximity Discovery**
+
+Inspired by Apple's COVID-19 Exposure Notification framework. Uses RSSI threshold -70 dBm (~10m) for bystander discovery — no GPS, no internet required.
 
 ```python
-d = 0.89976 × (RSSI / TxPower)^7.7095 + 0.111   # Apple EN formula
+d = 0.89976 * (RSSI / TxPower) ** 7.7095 + 0.111   # Apple EN formula
 ```
 
-### 3️⃣ LLM-Generated First-Aid Instructions
+**LLM-Generated First-Aid Instructions**
+
 Runtime AHA-aligned guidance via constrained prompt. Instructions differentiate by event — dual events prioritize cardiac response and include AED guidance; fall-only events emphasize spinal precautions.
 
-### 4️⃣ Multi-Actor Coordination
+**Multi-Actor Coordination**
+
 Three actors receive differentiated information routed by FSM state — not a single 911 call but a structured, tiered response.
 
 ---
 
-## 📊 Results
+## Results
 
 ### Phase I: Detection Performance
 
 | Model | Accuracy | Precision | Recall | F1-Score | Latency |
 |-------|----------|-----------|--------|----------|---------|
-| **IMU — Fall Detection** | 0.9178 | 0.7029 | **0.9649** | **0.8133** | 0.033 ms |
-| **ECG — Arrhythmia** | **0.9933** | 0.9834 | 0.9894 | **0.9864** | 0.018 ms |
+| IMU — Fall Detection | 0.9178 | 0.7029 | 0.9649 | 0.8133 | 0.033 ms |
+| ECG — Arrhythmia | 0.9933 | 0.9834 | 0.9894 | 0.9864 | 0.018 ms |
 
-Both models run well under the **40 ms real-time target** ✅
+Both models run well under the 40 ms real-time target.
 
-#### IMU Model — Confusion Matrix & ROC Curve
+#### IMU Model — Confusion Matrix and ROC Curve
 
 <table>
   <tr>
@@ -138,16 +142,16 @@ Both models run well under the **40 ms real-time target** ✅
   <tr>
     <td align="center">
       <img src="assets/imu_fall_trial.png" width="350" alt="Fall Trial"/>
-      <br/><em>Fall trial — model detects impact with sharp probability spike</em>
+      <br/><em>Fall trial — probability spike at impact</em>
     </td>
     <td align="center">
       <img src="assets/imu_adl_trial.png" width="350" alt="ADL Trial"/>
-      <br/><em>ADL (non-fall) trial — probability stays below threshold</em>
+      <br/><em>ADL trial — probability stays below threshold</em>
     </td>
   </tr>
 </table>
 
-#### ECG Model — Confusion Matrix & ROC Curve
+#### ECG Model — Confusion Matrix and ROC Curve
 
 <table>
   <tr>
@@ -166,7 +170,7 @@ Both models run well under the **40 ms real-time target** ✅
 
 <div align="center">
   <img src="assets/ecg_heartbeat.png" width="600" alt="ECG Heartbeat Analysis"/>
-  <br/><em>Single heartbeat analysis — model correctly classifies arrhythmia with high confidence</em>
+  <br/><em>Single heartbeat — model classifies arrhythmia with high confidence</em>
 </div>
 
 ---
@@ -175,15 +179,22 @@ Both models run well under the **40 ms real-time target** ✅
 
 #### Bulk Evaluation — 1,228 Real Test Windows
 
+Real IMU windows and ECG segments from test sets fed through trained models. All probabilities are genuine model outputs.
+
 | Metric | Value |
 |--------|-------|
-| Windows evaluated | **1,228** |
-| ALERT_ACTIVE (dual HIGH fast-path) | **705 / 1,228 (57.4%)** |
+| Windows evaluated | 1,228 |
+| ALERT_ACTIVE (dual HIGH fast-path) | 705 / 1,228 (57.4%) |
 | ALERT_PENDING (confirmation window) | 523 / 1,228 (42.6%) |
-| False escalations to responder | **0 / 1,228 (0.0%)** |
+| False escalations to responder | 0 / 1,228 (0.0%) |
 | Bystander notifications triggered | 705 / 1,228 |
-| Mean fall prob — HIGH events | **0.997** |
-| Mean arrhythmia prob — HIGH events | **0.981** |
+| Mean fall prob — HIGH events | 0.997 |
+| Mean arrhythmia prob — HIGH events | 0.981 |
+
+<div align="center">
+  <img src="assets/bulk_evaluation.png" width="750" alt="Bulk Evaluation"/>
+  <br/><em>Bulk evaluation across 1,228 real test windows — 0 false escalations</em>
+</div>
 
 #### Severity Classification
 
@@ -192,16 +203,11 @@ Both models run well under the **40 ms real-time target** ✅
   <br/><em>All 5 severity rules verified on real model outputs</em>
 </div>
 
-#### Multi-Actor Coordination Summary
+#### Multi-Actor Coordination
 
 <div align="center">
-  <img src="assets/coordination_summary.png" width="700" alt="Coordination Summary"/>
+  <img src="assets/coordination_summary.png" width="750" alt="Coordination Summary"/>
   <br/><em>5-scenario coordination simulation — all scenarios resolved correctly</em>
-</div>
-
-<div align="center">
-  <img src="assets/bulk_evaluation.png" width="750" alt="Bulk Evaluation"/>
-  <br/><em>Bulk evaluation across 1,228 real test windows — 0 false escalations</em>
 </div>
 
 #### LLM Output — Dual HIGH Event
@@ -220,41 +226,42 @@ Help is on the way.
 #### Escalation Lifecycle
 
 ```
-Cycle 1 → ALERT_ACTIVE      ← dual HIGH fast-path triggered
+Cycle 1 → ALERT_ACTIVE      (dual HIGH fast-path triggered)
 [60s — no bystander response]
-Cycle 2 → ESCALATING        ← call_responder: True
-[Paramedic] Acknowledged — dispatching unit
-Cycle 3 → RESOLVED          ✅
+Cycle 2 → ESCALATING        (call_responder: True)
+           Paramedic notified: fall_and_arrhythmia | Severity: HIGH
+           Paramedic acknowledged — dispatching unit
+Cycle 3 → RESOLVED
 ```
 
 ---
 
-### vs. Commercial Systems
+### Comparison with Commercial Systems
 
-| Capability | Phase I | Apple Watch | Life Alert | **Phase II** |
-|------------|:-------:|:-----------:|:----------:|:------------:|
-| Fall detection | ✅ | ✅ | ❌ | ✅ |
-| Arrhythmia detection | ✅ | ✅ | ❌ | ✅ |
-| Dual-signal fusion | ❌ | ❌ | ❌ | ✅ |
-| BLE bystander discovery | ❌ | ❌ | ❌ | ✅ |
-| Contextual instructions | ❌ | ❌ | ❌ | ✅ |
-| Multi-actor routing | ❌ | ❌ | ❌ | ✅ |
-| Edge-first (no cloud) | ✅ | ❌ | ❌ | ✅ |
-| GPS-free | ✅ | ❌ | ❌ | ✅ |
+| Capability | Phase I | Apple Watch | Life Alert | Phase II |
+|------------|---------|-------------|------------|----------|
+| Fall detection | Yes | Yes | No | Yes |
+| Arrhythmia detection | Yes | Yes | No | Yes |
+| Dual-signal fusion | No | No | No | Yes |
+| BLE bystander discovery | No | No | No | Yes |
+| Contextual instructions | No | No | No | Yes |
+| Multi-actor routing | No | No | No | Yes |
+| Edge-first (no cloud) | Yes | No | No | Yes |
+| GPS-free | Yes | No | No | Yes |
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 wecare/
-├── 📓 WECARE_IMU.ipynb              # Phase I: Fall detection
-├── 📓 WECARE_ECG.ipynb              # Phase I: Arrhythmia detection
-├── 📓 WECARE_Orchestration.ipynb    # Phase II: Full pipeline
-├── 📄 requirements.txt
-├── 📄 .gitignore
-├── 📄 LICENSE
-├── 📁 assets/                       # All images for README
+├── WECARE_IMU.ipynb              # Phase I: Fall detection
+├── WECARE_ECG.ipynb              # Phase I: Arrhythmia detection
+├── WECARE_Orchestration.ipynb    # Phase II: Full pipeline
+├── requirements.txt
+├── .gitignore
+├── LICENSE
+├── assets/                       # Images for README
 │   ├── imu_confusion_matrix.png
 │   ├── imu_roc_curve.png
 │   ├── imu_fall_trial.png
@@ -263,9 +270,9 @@ wecare/
 │   ├── ecg_roc_curve.png
 │   ├── ecg_heartbeat.png
 │   ├── severity_classification.png
-│   ├── pipeline_output.png
+│   ├── bulk_evaluation.png
 │   └── coordination_summary.png
-└── 📁 docs/
+└── docs/
     ├── SETUP.md
     ├── ARCHITECTURE.md
     └── RESULTS.md
@@ -273,37 +280,31 @@ wecare/
 
 ---
 
-## ⚙️ Setup
+## Setup
 
-### Prerequisites
+**Prerequisites:** Google Account (Colab + Drive), Groq API key (free at [console.groq.com](https://console.groq.com)), GPU recommended.
 
-- Google Account (Colab + Drive)
-- Groq API key — free at [console.groq.com](https://console.groq.com)
-- GPU recommended (T4 in Colab is free)
+**1. Get the datasets**
 
-### 1. Get the Datasets
+MobiFall (IMU): Download from [Kaggle](https://www.kaggle.com/datasets/mrwellsdavid/mobifall) and upload CSVs to `MyDrive/AI4BM/IMU_MobiAct/Output/`
 
-**IMU — MobiFall:**
-Download from [Kaggle](https://www.kaggle.com/datasets/mrwellsdavid/mobifall) → upload CSVs to `MyDrive/AI4BM/IMU_MobiAct/Output/`
+MIT-BIH (ECG): Auto-downloads via `wfdb` when you run WECARE_ECG.ipynb — no manual download needed.
 
-**ECG — MIT-BIH:**
-Auto-downloads via `wfdb` when you run `WECARE_ECG.ipynb` — no manual download needed.
-
-### 2. Run Phase I
+**2. Run Phase I**
 
 ```
 WECARE_IMU.ipynb  →  Runtime → Run all  →  saves imu_model.pth
 WECARE_ECG.ipynb  →  Runtime → Run all  →  saves ecg_model.pth
 ```
 
-### 3. Add Your Groq API Key
+**3. Add your Groq API key**
 
-In `WECARE_Orchestration.ipynb` Cell 6:
+In WECARE_Orchestration.ipynb Cell 6:
 ```python
 groq_client = Groq(api_key="YOUR_GROQ_API_KEY_HERE")
 ```
 
-### 4. Run Phase II
+**4. Run Phase II**
 
 ```
 WECARE_Orchestration.ipynb  →  Runtime → Run all
@@ -311,13 +312,13 @@ WECARE_Orchestration.ipynb  →  Runtime → Run all
 
 Expected: 13 cells run successfully, bulk evaluation processes 1,228 windows.
 
-📖 Full setup → [docs/SETUP.md](docs/SETUP.md)
+Full setup details in [docs/SETUP.md](docs/SETUP.md).
 
 ---
 
-## 🎬 Demo
+## Demo
 
-### Force a HIGH Severity Event
+**Force a HIGH severity event:**
 
 ```python
 # WECARE_Orchestration.ipynb — Cell 7
@@ -337,7 +338,7 @@ instructions = generate_instructions(
 )
 ```
 
-### Run on Real Dataset Windows
+**Run on real dataset windows:**
 
 ```python
 # Cell 10 — real IMU + ECG test windows, genuine model outputs
@@ -345,14 +346,14 @@ instructions = generate_instructions(
 for name, imu_pool, imu_i, ecg_pool, ecg_i in scenario_pairs:
     imu_window  = X_imu_test[imu_pool[imu_i]]
     ecg_segment = X_ecg_test[ecg_pool[ecg_i], :, 0]
-    fall_result = detect_fall(imu_window)       # real model inference
+    fall_result = detect_fall(imu_window)
     ecg_result  = detect_arrhythmia(ecg_segment)
-    # → full pipeline on genuine predictions
+    # full pipeline runs on genuine model predictions
 ```
 
 ---
 
-## 🗺 Roadmap
+## Roadmap
 
 - [x] Phase I: 1D CNN fall detection — F1 = 0.81
 - [x] Phase I: 1D CNN arrhythmia detection — F1 = 0.99
@@ -364,27 +365,27 @@ for name, imu_pool, imu_i, ecg_pool, ecg_i in scenario_pairs:
 - [x] Phase II: Real test data pipeline — 1,228 windows evaluated
 - [ ] Android app with live detection demo
 - [ ] On-device LLM (Gemma 2B via MediaPipe)
-- [ ] Real BLE broadcasting + scanning
+- [ ] Real BLE broadcasting and scanning
 - [ ] Hardware prototype (Raspberry Pi Zero 2W)
 - [ ] Pilot study with human subjects
 
 ---
 
-## 📚 Datasets
+## Datasets
 
 | Dataset | Modality | Source | Subjects | Samples |
 |---------|----------|--------|----------|---------|
 | MIT-BIH Arrhythmia Database | ECG | [PhysioNet](https://physionet.org/content/mitdb/1.0.0/) (real clinical) | 47 | ~10,000 segments |
 | MobiFall_processed | IMU 9-channel | [Kaggle](https://www.kaggle.com/datasets/mrwellsdavid/mobifall) | 24 | ~40,000 windows |
 
-> **Note on data pairing:** No public dataset simultaneously captures ECG and IMU during co-occurring fall and cardiac events. Test windows from each modality are paired systematically — standard methodology in systems research when combined ground truth does not exist.
+Note on data pairing: No public dataset simultaneously captures ECG and IMU during co-occurring fall and cardiac events. Test windows from each modality are paired systematically — standard methodology in systems research when combined ground truth does not exist.
 
 ---
 
-## 🔬 Technical Details
+## Technical Details
 
 <details>
-<summary><b>IMU Model Architecture</b></summary>
+<summary>IMU Model Architecture</summary>
 
 ```
 Input: (100, 9) — 1 second of 9-channel IMU data
@@ -400,14 +401,14 @@ Epochs: 20  |  Threshold: 0.65
 </details>
 
 <details>
-<summary><b>ECG Model Architecture</b></summary>
+<summary>ECG Model Architecture</summary>
 
 ```
 Input: (1, 256) — one heartbeat segment (MLII lead)
 
-Conv1D(1→32,  kernel=15, pad=7) → ReLU → MaxPool(2)
-Conv1D(32→64, kernel=9,  pad=4) → ReLU → MaxPool(2)
-Conv1D(64→128, kernel=5, pad=2) → ReLU → MaxPool(2)
+Conv1D(1→32,   kernel=15, pad=7) → ReLU → MaxPool(2)
+Conv1D(32→64,  kernel=9,  pad=4) → ReLU → MaxPool(2)
+Conv1D(64→128, kernel=5,  pad=2) → ReLU → MaxPool(2)
 Flatten → Linear(4096→256) → ReLU → Dropout(0.3) → Linear(256→2)
 
 Optimizer: Adam  lr=1e-3  weight_decay=1e-4
@@ -416,22 +417,22 @@ Epochs: 20  |  Threshold: 0.50
 </details>
 
 <details>
-<summary><b>FSM Transition Table</b></summary>
+<summary>FSM Transition Table</summary>
 
 | From | To | Trigger | Action |
 |------|----|---------|--------|
-| IDLE | PENDING | Severity ≠ NONE | Vibrate |
-| IDLE | **ACTIVE** | **Dual HIGH** | **Audio + BLE** |
-| PENDING | IDLE | Signal lost < 5s | Dismiss (FP) |
-| PENDING | ACTIVE | Sustained ≥ 5s | Audio + BLE |
+| IDLE | PENDING | Severity not NONE | Vibrate |
+| IDLE | ACTIVE | Dual HIGH signal | Audio + BLE |
+| PENDING | IDLE | Signal lost < 5s | Dismiss (false positive) |
+| PENDING | ACTIVE | Sustained >= 5s | Audio + BLE |
 | ACTIVE | ESCALATING | No response 60s | Call responder |
 | ACTIVE | RESOLVED | User confirms safe | Dismiss |
-| ESCALATING | RESOLVED | Responder acks | Dismiss |
+| ESCALATING | RESOLVED | Responder acknowledges | Dismiss |
 </details>
 
 ---
 
-## 📝 Citation
+## Citation
 
 ```bibtex
 @misc{murugesan2026wecare,
@@ -445,22 +446,22 @@ Epochs: 20  |  Threshold: 0.50
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
-- **Dr. Mahdi Pedram** — Directed Study Advisor, University of North Texas
-- [MIT-BIH Arrhythmia Database](https://physionet.org/content/mitdb/1.0.0/) — PhysioNet
+- Dr. Mahdi Pedram — Directed Study Advisor, University of North Texas
+- [MIT-BIH Arrhythmia Database](https://physionet.org/content/mitdb/1.0.0/) — PhysioNet / Beth Israel Hospital
 - [MobiFall Dataset](https://www.kaggle.com/datasets/mrwellsdavid/mobifall) — Kaggle
-- Apple Inc. & Google — COVID-19 Exposure Notification BLE Specification
+- Apple Inc. and Google — COVID-19 Exposure Notification BLE Specification
 - American Heart Association — CPR and ECC Guidelines
 
 ---
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
-  <sub>Built as part of M.S. Artificial Intelligence directed study · University of North Texas · Spring 2026</sub>
+  <sub>M.S. Artificial Intelligence directed study · University of North Texas · Spring 2026</sub>
 </div>
