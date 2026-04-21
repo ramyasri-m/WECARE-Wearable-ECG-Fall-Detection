@@ -691,19 +691,38 @@
     btn.textContent = "Triggering...";
     btn.disabled = true;
 
-    // Show immediate feedback
-    updateUI("HIGH", "ALERT_ACTIVE", 1.0, 1.0,
-             "Bystander nearby", "Fetching instructions...");
+    // Post trigger message to ntfy — Colab will detect this and respond
+    try {
+        await fetch("https://ntfy.sh/wecare-demo-trigger", {
+            method: "POST",
+            body: "TRIGGER_HIGH",
+            headers: {
+                "Title":    "WECARE Trigger",
+                "Priority": "urgent",
+                "Tags":     "rotating_light"
+            }
+        });
+    } catch(e) {
+        console.warn("Trigger failed:", e);
+    }
+
+    // Show immediate visual feedback while Colab responds
+    document.getElementById("severityCard").className = "severity-card high";
+    document.getElementById("severityValue").className = "severity-value high";
+    document.getElementById("severityValue").textContent = "HIGH";
+    document.getElementById("systemState").textContent = "State: ALERT_ACTIVE";
+    document.getElementById("instructionsCard").className = "instructions-card visible";
+    document.getElementById("instructionsContent").innerHTML =
+        "<div class='step-text'>Processing emergency... instructions loading</div>";
+    document.getElementById("btnResolve").className = "btn-resolve visible";
+    isEmergency = true;
 
     setTimeout(() => {
-      btn.textContent = "Force Emergency (Demo)";
-      btn.disabled = false;
-    }, 3000);
-
-    // Poll immediately to get real data
-    await poll();
-  }
-
+        btn.textContent = "Force Emergency (Demo)";
+        btn.disabled = false;
+        poll(); // fetch real result from Colab
+    }, 4000);
+}
   // ── Resolve ────────────────────────────────────────────────────────────
   function resolve() {
     isEmergency = false;
