@@ -34,6 +34,7 @@ export default function BLEScannerScreen() {
   const [alert, setAlert]       = useState<EmergencyAlert | null>(null);
 
   const scanTimeout  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deviceMapRef = useRef<Map<string, Device>>(new Map());
   const alertPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastAlertId  = useRef<string | undefined>(undefined);
 
@@ -60,12 +61,12 @@ export default function BLEScannerScreen() {
       }
     }, 5000);
     return () => {
-      if (alertPollRef.current) clearInterval(alertPollRef.current);
+      if (alertPollRef.current) {clearInterval(alertPollRef.current);}
     };
   }, []);
 
   const requestPermissions = useCallback(async (): Promise<boolean> => {
-    if (Platform.OS !== 'android') return true;
+    if (Platform.OS !== 'android') {return true;}
     const apiLevel = Platform.Version as number;
     const permissions =
       apiLevel >= 31
@@ -88,12 +89,18 @@ export default function BLEScannerScreen() {
     return true;
   }, []);
 
-  const stopScanAndPublish = useCallback((deviceMap: Map<string, Device>) => {
+  const stopScanAndPublish = useCallback(() => {
+    if (scanTimeout.current) {
+      clearTimeout(scanTimeout.current);
+      scanTimeout.current = null;
+    }
     manager.stopDeviceScan();
     setScanning(false);
 
-    const list = Array.from(deviceMap.values());
-    if (list.length === 0) return;
+    const list = Array.from(deviceMapRef.current.values());
+    if (list.length === 0) {
+      return;
+    }
 
     const best = list.reduce((a, b) =>
       (a.rssi ?? -100) > (b.rssi ?? -100) ? a : b,
@@ -112,10 +119,12 @@ export default function BLEScannerScreen() {
     }
 
     const granted = await requestPermissions();
-    if (!granted) return;
+    if (!granted) {
+      return;
+    }
 
-    const freshDevices = new Map<string, Device>();
-    setDevices(freshDevices);
+    deviceMapRef.current = new Map();
+    setDevices(new Map());
     setScanning(true);
 
     manager.startDeviceScan(null, {allowDuplicates: true}, (err, device) => {
@@ -125,30 +134,16 @@ export default function BLEScannerScreen() {
         return;
       }
       if (device && device.rssi !== null) {
-        setDevices(prev => {
-          const next     = new Map(prev);
-          const existing = next.get(device.id);
-          if (!existing || (device.rssi ?? -100) > (existing.rssi ?? -100)) {
-            next.set(device.id, device);
-            freshDevices.set(device.id, device);
-          }
-          return next;
-        });
+        const existing = deviceMapRef.current.get(device.id);
+        if (!existing || device.rssi > (existing.rssi ?? -100)) {
+          deviceMapRef.current.set(device.id, device);
+          setDevices(new Map(deviceMapRef.current));
+        }
       }
     });
 
-    scanTimeout.current = setTimeout(() => {
-      stopScanAndPublish(freshDevices);
-    }, 15000);
+    scanTimeout.current = setTimeout(stopScanAndPublish, 15000);
   }, [bleState, requestPermissions, stopScanAndPublish]);
-
-  const stopScan = useCallback(() => {
-    if (scanTimeout.current) clearTimeout(scanTimeout.current);
-    setDevices(prev => {
-      stopScanAndPublish(prev);
-      return prev;
-    });
-  }, [stopScanAndPublish]);
 
   const sortedDevices = Array.from(devices.values()).sort(
     (a, b) => (b.rssi ?? -100) - (a.rssi ?? -100),
@@ -236,7 +231,7 @@ export default function BLEScannerScreen() {
         {scanning && <ActivityIndicator color="#6b6b8a" style={styles.spinner} />}
         <TouchableOpacity
           style={[styles.scanBtn, scanning && styles.scanBtnStop]}
-          onPress={scanning ? stopScan : startScan}
+          onPress={scanning ? stopScanAndPublish : startScan}
           activeOpacity={0.85}>
           <Text style={[styles.scanBtnText, scanning && styles.scanBtnTextStop]}>
             {scanning ? 'STOP' : 'SCAN'}

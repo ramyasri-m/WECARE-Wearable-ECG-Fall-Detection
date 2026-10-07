@@ -300,7 +300,7 @@ wecare/
 ├── WECARE_ECG.ipynb              # Phase I: Arrhythmia detection
 ├── WECARE_Orchestration.ipynb    # Phase II: Full pipeline
 ├── wecare_agents.py              # Phase III: Multi-agent orchestration
-├── mobile/                       # React Native BLE scanner (source only — not buildable as-is)
+├── mobile/                       # React Native BLE scanner (Android; see mobile/README.md)
 ├── requirements.txt
 ├── .gitignore
 ├── LICENSE
@@ -320,7 +320,7 @@ wecare/
     ├── ARCHITECTURE.md
     ├── RESULTS.md
     ├── MULTI_AGENT_ARCHITECTURE.md   # Phase III design
-    └── MOBILE_APP_ANALYSIS.md        # What's broken in mobile/ and how to fix it
+    └── MOBILE_APP_ANALYSIS.md        # Why mobile/ was not buildable and how it was fixed
 ```
 
 ---
@@ -409,7 +409,7 @@ for name, imu_pool, imu_i, ecg_pool, ecg_i in scenario_pairs:
 - [x] Phase II: Multi-actor coordination simulation
 - [x] Phase II: Real test data pipeline — 1,228 windows evaluated
 - [x] Phase III: Multi-agent orchestration (Triage + Bystander + Paramedic + Patient agents) — see [docs/MULTI_AGENT_ARCHITECTURE.md](docs/MULTI_AGENT_ARCHITECTURE.md)
-- [ ] Android app with live detection demo — see [docs/MOBILE_APP_ANALYSIS.md](docs/MOBILE_APP_ANALYSIS.md)
+- [ ] Android app with live detection demo: scaffold and checks pass, on-device build still to be verified — see [mobile/README.md](mobile/README.md)
 - [ ] On-device LLM (Gemma 2B via MediaPipe)
 - [ ] Real BLE broadcasting and scanning
 - [ ] Hardware prototype (Raspberry Pi Zero 2W)

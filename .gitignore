@@ -81,6 +81,8 @@ outputs/
 logs/
 # Exception: keep small example result files
 !docs/example_results.json
+# Keep the mobile app's project config (package.json, tsconfig.json, app.json, lockfile)
+!mobile/*.json
 
 # ── Google Drive / Colab ──────────────────────────────────────────────────
 drive/
