@@ -81,6 +81,46 @@ WECARE is built in two phases:
 
 ---
 
+## Phase III — Multi-Agent Orchestration
+
+The single LLM call in Phase II is replaced by a coordinated team of
+specialized agents. Each agent has one job, one reader, and one tuned
+temperature. The Coordinator fans out to specialists in parallel so
+end-to-end latency is bounded by the slowest single agent, not the sum.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    COORDINATOR AGENT (routing)                   │
+└───────┬─────────────────┬──────────────────┬─────────────────────┘
+        ▼                 ▼                  ▼
+   ┌─────────┐    ┌──────────────┐   ┌───────────────┐   ┌─────────────┐
+   │ TRIAGE  │    │ BYSTANDER    │   │ PARAMEDIC     │   │ PATIENT     │
+   │ (gate)  │    │ INSTRUCTOR   │   │ HANDOFF       │   │ REASSURANCE │
+   │ T=0.0   │    │ T=0.2        │   │ T=0.0         │   │ T=0.3       │
+   │ JSON    │    │ 6th-grade    │   │ clinical      │   │ <10 words/s │
+   │ verdict │    │ 5 steps      │   │ 4-line schema │   │ 3 sentences │
+   └─────────┘    └──────────────┘   └───────────────┘   └─────────────┘
+```
+
+| FSM state | Agents invoked (after Triage gate) |
+|-----------|-----------------------------------|
+| IDLE | — |
+| PENDING | Patient |
+| ACTIVE | Bystander + Patient (parallel) |
+| ESCALATING | Bystander + Paramedic + Patient (parallel) |
+| RESOLVED | — |
+
+~40 percent lower end-to-end latency at ESCALATING vs the serial
+Phase II prompt. Full design in [docs/MULTI_AGENT_ARCHITECTURE.md](docs/MULTI_AGENT_ARCHITECTURE.md).
+
+Run the offline self-test (no API key, no network):
+
+```bash
+python3 wecare_agents.py
+```
+
+---
+
 ## Key Innovations
 
 **Dual-Signal Fast-Path**
@@ -258,6 +298,8 @@ wecare/
 ├── WECARE_IMU.ipynb              # Phase I: Fall detection
 ├── WECARE_ECG.ipynb              # Phase I: Arrhythmia detection
 ├── WECARE_Orchestration.ipynb    # Phase II: Full pipeline
+├── wecare_agents.py              # Phase III: Multi-agent orchestration
+├── mobile/                       # React Native BLE scanner (source only — not buildable as-is)
 ├── requirements.txt
 ├── .gitignore
 ├── LICENSE
@@ -275,7 +317,9 @@ wecare/
 └── docs/
     ├── SETUP.md
     ├── ARCHITECTURE.md
-    └── RESULTS.md
+    ├── RESULTS.md
+    ├── MULTI_AGENT_ARCHITECTURE.md   # Phase III design
+    └── MOBILE_APP_ANALYSIS.md        # What's broken in mobile/ and how to fix it
 ```
 
 ---
@@ -363,7 +407,8 @@ for name, imu_pool, imu_i, ecg_pool, ecg_i in scenario_pairs:
 - [x] Phase II: LLM instruction generator (Groq API)
 - [x] Phase II: Multi-actor coordination simulation
 - [x] Phase II: Real test data pipeline — 1,228 windows evaluated
-- [ ] Android app with live detection demo
+- [x] Phase III: Multi-agent orchestration (Triage + Bystander + Paramedic + Patient agents) — see [docs/MULTI_AGENT_ARCHITECTURE.md](docs/MULTI_AGENT_ARCHITECTURE.md)
+- [ ] Android app with live detection demo — see [docs/MOBILE_APP_ANALYSIS.md](docs/MOBILE_APP_ANALYSIS.md)
 - [ ] On-device LLM (Gemma 2B via MediaPipe)
 - [ ] Real BLE broadcasting and scanning
 - [ ] Hardware prototype (Raspberry Pi Zero 2W)
