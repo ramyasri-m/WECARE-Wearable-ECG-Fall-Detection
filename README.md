@@ -110,8 +110,9 @@ end-to-end latency is bounded by the slowest single agent, not the sum.
 | ESCALATING | Bystander + Paramedic + Patient (parallel) |
 | RESOLVED | — |
 
-~40 percent lower end-to-end latency at ESCALATING vs the serial
-Phase II prompt. Full design in [docs/MULTI_AGENT_ARCHITECTURE.md](docs/MULTI_AGENT_ARCHITECTURE.md).
+Specialists run in parallel, so latency at ESCALATING should be bounded by
+the slowest single agent rather than the sum (not yet benchmarked against
+the live Groq API). Full design in [docs/MULTI_AGENT_ARCHITECTURE.md](docs/MULTI_AGENT_ARCHITECTURE.md).
 
 Run the offline self-test (no API key, no network):
 

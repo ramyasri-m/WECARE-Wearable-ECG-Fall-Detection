@@ -98,18 +98,17 @@ bounded by the slowest of the three, not their sum.
 
 ## Latency budget
 
-Measured on `llama-3.3-70b-versatile` via Groq:
+**Not yet measured.** The self-test uses a mock client, so no real LLM
+latency has been recorded. Expected behavior from the design:
 
-| Call | Serial baseline | Multi-agent parallel |
-|------|-----------------|----------------------|
-| Triage | ~0.4 s | ~0.4 s |
-| Bystander | ~1.2 s | ~1.2 s |
-| Paramedic | ~0.6 s | (overlapped) |
-| Patient | ~0.4 s | (overlapped) |
-| **End-to-end** | **~2.6 s** | **~1.6 s** |
+- Triage runs first and alone (one round-trip).
+- At ESCALATING the three specialists run in parallel, so their combined
+  time is roughly the slowest single call rather than the sum of the three.
 
-~40 percent reduction in end-to-end latency at ESCALATING, which is
-the state where every second counts.
+To get real numbers, run `CoordinatorAgent(groq_api_key=...).dispatch(ctx)`
+on the real Groq client and compare `result["latency_s"]` against the
+Phase II single-prompt call over the same scenarios (e.g. 20 runs each,
+report mean and p95). Replace this section with those results.
 
 ## Observability
 
